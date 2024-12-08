@@ -1,0 +1,13 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// Add your custom CSS here
+.wrapper {
+  max-width: 960px;
+}
+
+section {
+  line-height: 1.6;
+}
