@@ -1,4 +1,4 @@
-# Data Science & Analytics Portfolio
+# Data Science & Analytics Portfolio by Anish Khairnar
 
 ## About Me
 Results-driven Data Scientist and Business Analytics professional with expertise in machine learning, data engineering, and business intelligence. Graduated MS in Business Analytics at the University of Utah, with experience in implementing end-to-end data solutions and driving business value through data-driven insights.
