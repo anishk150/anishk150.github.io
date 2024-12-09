@@ -54,4 +54,4 @@ Results-driven Data Scientist and Business Analytics professional with expertise
 - **Cloud:** Azure, AWS
 - **Tools:** Git, JIRA, Asana, Oracle NetSuite
 
-* If you'd like to discuss any of these projects, work opportunities, or potential collaborations, feel free to reach out via [Email](anishkhairnar15@gmail.com) or [LinkedIn](www.linkedin.com/in/anishkhairnar)*
+* If you'd like to discuss any of these projects, work opportunities, or potential collaborations, feel free to reach out via [Email](anishkhairnar15@gmail.com) or [LinkedIn](www.linkedin.com/in/anishkhairnar)
