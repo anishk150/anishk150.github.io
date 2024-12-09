@@ -18,7 +18,7 @@ Results-driven Data Scientist and Business Analytics professional with expertise
 - The upsampled XGBoost model for Home Credit. This model offers a strong balance between accuracy and generalizability, making it a powerful tool for predicting loan repayment likelihood.
 - The predictive models underwent thorough validation through cross-validation to ensure their reliability and applicability to various segments.
 - **Impact:** The predictive modeling solution, specifically the upsampled XGBoost model, greatly enhances Home Credit's operational efficiency and financial stability by increasing the accuracy of loan repayment predictions. This enables a more secure expansion of credit to underserved populations, improving financial inclusion and expanding market reach. The decrease in default rates and the optimized loan processing also help to lower operational costs and improve customer satisfaction.
-- [Link to detailed notebook]
+- [Link to detailed notebook](https://github.com/anishk150/Khairnar_Anish_portfolio)
 
 ### Banking Institution Optimizing Telemarketing Campaigns
 - **Business Problem:** A Portuguese banking institution aims to optimize its telemarketing campaigns for term deposits. The challenge is to predict whether a client will subscribe to a term deposit, using client data, campaign information, and economic indicators.
