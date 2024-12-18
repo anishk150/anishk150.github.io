@@ -11,7 +11,7 @@ Results-driven Data Scientist and Business Analytics professional with expertise
 
 ### Machine Learning & Analytics Projects
 
-### [Predictive Maintenance Analysis (Swire Coca-Cola Capstone Project)](https://github.com/anishk150/Projects/Coke Swire)
+### [Predictive Maintenance Analysis (Swire Coca-Cola Capstone Project)](https://github.com/anishk150/Projects/CokeSwire)
 - **Business Problem:** Swire Coca-Cola faces significant challenges with unplanned machine downtimes leading to operational disruptions and increased costs. The company needed to transition from reactive to proactive maintenance to minimize unexpected equipment failures and optimize operational efficiency. 
 - **Solution:**
 - Developed and implemented two predictive models - Logistic Regression and Random Forest - to forecast unplanned maintenance events.
