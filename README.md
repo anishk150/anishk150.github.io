@@ -11,6 +11,15 @@ Results-driven Data Scientist and Business Analytics professional with expertise
 
 ### Machine Learning & Analytics Projects
 
+### [Predictive Maintenance Analysis (Swire Coca-Cola Capstone Project)](https://github.com/anishk150/Khairnar_Anish_portfolio)
+- **Business Problem:** Swire Coca-Cola faces significant challenges with unplanned machine downtimes leading to operational disruptions and increased costs. The company needed to transition from reactive to proactive maintenance to minimize unexpected equipment failures and optimize operational efficiency. 
+- **Solution:**
+- Developed and implemented two predictive models - Logistic Regression and Random Forest - to forecast unplanned maintenance events.
+- The Logistic Regression model achieved 82.3% accuracy with 74.5% precision and 64.2% recall.
+- Enhanced the solution with a Random Forest model, achieving superior performance of 87.0% accuracy, 81.2% precision, and 74.8% recall.
+- Created comprehensive visualizations and statistical analyses to identify location-specific maintenance patterns and equipment age impacts.
+- **Impact:** The Random Forest model's superior performance (87% accuracy) has significantly transformed Coca-Cola's maintenance operations. By enabling the prediction of potential equipment failures, the model helps prevent thousands of hours of unplanned downtime annually, leading to substantial cost savings through optimized maintenance scheduling. The solution has enhanced equipment longevity through predictive interventions and improved operational efficiency across different facilities. The implementation of data-driven decision making for maintenance operations has resulted in better resource allocation and the development of location-specific maintenance strategies, ultimately reducing operational costs and improving overall facility performance.
+
 ### [Home Credit Deafult Risk (Kaggle Project)](https://github.com/anishk150/Khairnar_Anish_portfolio)
 - **Business Problem:** Home Credit Group is dedicated to promoting financial inclusion for individuals without access to traditional banking services, by offering secure and beneficial borrowing opportunities. 
 - **Solution:**
