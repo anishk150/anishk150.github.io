@@ -51,14 +51,23 @@ Throughout the project, our team faced several challenges:
 
 ## Learning Outcomes
 1. Technical Skills Development
+
 Through this project, I gained extensive hands-on experience with advanced predictive modeling techniques. The process of handling a large-scale maintenance dataset enhanced my proficiency in data preprocessing, feature engineering, and model optimization. Working with time-series data presented unique challenges that required developing specialized solutions for temporal feature creation and validation strategies. I learned to effectively implement and compare different machine learning algorithms, particularly focusing on the nuances between Logistic Regression and Random Forest models. The experience of handling missing values and implementing various data imputation techniques significantly improved my data cleaning capabilities.
+
 2. Business Understanding and Analytics
+
 This project deepened my understanding of industrial operations and maintenance management. I learned how to translate complex technical findings into actionable business insights, particularly in the context of predictive maintenance. Working with maintenance data helped me understand the critical balance between maintenance costs and operational efficiency. I gained valuable insights into how data-driven decision making can significantly impact business operations, especially in reducing unplanned downtime and optimizing resource allocation. The process of developing performance metrics and conducting cost-benefit analyses enhanced my ability to quantify the business impact of technical solutions.
+
 3. Professional Skill Enhancement
+
 The project significantly developed my project management and communication skills in a data science context. I learned to effectively collaborate with team members, present technical findings to non-technical stakeholders, and document complex analytical processes. The experience of working with real-world industrial data taught me the importance of balancing theoretical knowledge with practical considerations. I developed strong problem-solving skills, particularly in handling unexpected data challenges and model performance issues. The project also enhanced my ability to write clear, comprehensive documentation and present results in an accessible manner.
+
 4. Machine Learning Application Expertise
+
 Working on this project provided deep insights into the practical application of machine learning in an industrial setting. I gained experience in selecting appropriate algorithms based on business requirements, handling class imbalance in real-world datasets, and implementing cross-validation strategies for time-series data. The process of model selection and optimization taught me the importance of balancing model complexity with interpretability. I learned to effectively evaluate model performance using various metrics and make data-driven decisions for model selection.
-5. Data Visualization and Communication
+
+6. Data Visualization and Communication
+
 The project enhanced my data visualization skills, particularly in creating meaningful representations of complex maintenance patterns and model results. I learned to use various visualization techniques to communicate insights effectively to different stakeholders. The experience of creating dashboards and summary reports improved my ability to present technical findings in an accessible format. I developed expertise in using visualization tools to identify patterns in maintenance data and communicate predictive model results.
 
 The project enhanced my understanding of both the technical aspects of predictive modeling and the practical considerations of implementing such solutions in an industrial setting. The experience of working with real-world maintenance data and addressing actual business challenges provided invaluable insights into the intersection of data science and business operations.
