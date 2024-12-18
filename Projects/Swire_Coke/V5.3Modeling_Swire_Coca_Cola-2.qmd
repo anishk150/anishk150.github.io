@@ -1,0 +1,1125 @@
+---
+title: "Modeling Swire Coca Cola"
+author: "ANISH KHAIRNAR"
+date: "December 6, 2024"
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-smooth-scroll: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Contents"
+execute:
+  include: true
+  echo: true
+  eval: true    
+  warning: false
+  message: false
+
+---
+
+```{r setup_data, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+## Introduction & Setup: 
+
+Swire Coca-Cola faces challenges in unplanned machine downtimes leading to operational inefficiencies. This project aims to develop predictive maintenance models to anticipate machine failures, allowing for proactive maintenance actions.
+
+The objective of this project is to build a predictive maintenance model for Swire Coca-Cola, aimed at reducing unplanned machine downtimes and enhancing overall operational efficiency. At present, the company faces substantial financial losses and productivity declines due to unexpected equipment failures. 
+
+To overcome these challenges, Swire Coca-Cola seeks to implement a predictive maintenance solution. By analyzing historical data from the Internal Warehouse Controller (IWC) system, the goal is to identify patterns in machine failures, forecast future downtimes, and ensure that necessary parts are available in advance. The solution aims to minimize unplanned downtimes, optimize machine reliability, and improve production capacity while reducing financial losses.
+
+This exploratory data analysis (EDA) serves as the foundation for building the predictive model. Through detailed analysis of machine maintenance records, downtime logs, and operational data, we will uncover the key factors contributing to machine breakdowns. These insights will help shape a data-driven, proactive maintenance approach, enabling Swire Coca-Cola to shift from reactive to predictive maintenance, improve operational efficiency, and better meet production targets.
+
+
+### Overview of Predictive Maintenance for Swire Coca-Cola
+Predictive maintenance leverages historical machine data to predict when maintenance should be performed. This helps reduce downtime and extend the life of equipment.
+
+### Key Objectives:
+1. Improve on the baseline model's performance.
+2. Develop robust features as identified in the EDA.
+3. Evaluate different models and select the one best suited to solve the business problem.
+
+- Implement predictive models to forecast machine failures.
+- Enable preventive actions based on predictions to enhance operational efficiency.
+
+
+### Importing Libraries
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(scales)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(randomForest)
+
+```
+
+### Import Dataset
+
+```{r}
+# Load the dataset
+data <- read.csv("IWC_Work_Orders_Extract.csv")
+
+# Display the first few rows of the dataset
+head(data)
+
+```
+
+The dataset gives an in-depth glance at how Swire Coca-Cola manages maintenance across various plants and production sites. It contains important details like maintenance dates, how long they last, whether they are planned or unplanned, and thorough descriptions of the equipment involved. The data covers multiple years, making it possible to analyze trends over time. Important columns such as ACTUAL_WORK_IN_MINUTES and MAINTENANCE_TYPE_DESCRIPTION provide valuable insights into the nature and extent of maintenance activities.
+
+Some interesting patterns stand out from this first look. A lot of entries fall under unplanned, corrective maintenance, which hints at a possibly reactive way of handling equipment maintenance. The dataset includes a range of machinery, and you'll notice that conveyor systems show up quite often in the sample. This detailed dataset will play a key role in examining maintenance trends, spotting equipment that needs regular care, and possibly revealing chances to move from reactive to proactive maintenance approaches. This shift could help minimize unexpected downtime and enhance overall operational efficiency.
+
+
+## Understanding the Data
+
+### Checking the Structure of the Data
+```{r}
+# Checking the structure of the data
+str(data)
+
+# Summary statistics
+summary(data)
+
+```
+
+The dataset is organized to show a detailed maintenance record, featuring 1,427,264 observations spread across 25 variables. It features a combination of numeric, character, and date-time data types, offering a comprehensive look at maintenance activities. Important numeric variables such as ORDER_ID and ACTUAL_WORK_IN_MINUTES provide valuable insights into tracking work orders and understanding maintenance durations. Having character variables like PLANT_ID, MAINTENANCE_ACTIVITY_TYPE, and EQUIPMENT_DESC makes it possible to analyze maintenance patterns categorically across various locations, activity types, and equipment.
+
+The summary statistics showcase some key aspects of the data. For example, the ACTUAL_WORK_IN_MINUTES spans from 0 to 330,184.8 minutes, with a median of 48 minutes, indicating a broad range of durations for maintenance tasks. The MAINTENANCE_ITEM field shows a significant amount of NA values (1,274,670), which suggests there might be some data quality concerns or that this information was recorded optionally. The EQUIPMENT_ID field has some NA values, so we might need to look into that a bit more. The dataset covers several years, as shown by the EXECUTION_START_DATE field, which makes it possible to analyze trends over the long term. This dataset opens up plenty of chances to dive deep into maintenance trends, equipment performance, and how efficiently things are running at Swire Coca-Cola's facilities.
+
+### Checking for Missing Data
+```{r}
+# Check for empty strings in the data
+empty_strings <- sapply(data, function(x) sum(x == ""))
+print(empty_strings)
+
+# Identify missing data (NA's) columns
+cols_with_na <- colnames(data)[colSums(is.na(data)) > 0]
+print("Columns with NA values:")
+print(cols_with_na)
+
+```
+
+The above code identifies empty strings and columns with missing values (NAs). Columns such as MAINTENANCE_ITEM and EQUIPMENT_ID are identified as having substantial missing data, reinforcing the need to address this issue for accurate analysis.
+
+```{r}
+# Replacing empty strings with na
+data[data == ""] <- NA
+```
+
+This code replaces all empty strings with NA values to standardize the dataset.
+
+```{r}
+# Check for missing data
+missing_data <- data.frame(Feature = names(data), MissingCount = sapply(data, function(x) sum(is.na(x))))
+missing_data
+
+```
+
+### Visualizing Missing Data
+
+```{r}
+# Visualize missing data
+ggplot(missing_data, aes(x=reorder(Feature, MissingCount), y=MissingCount)) +
+  geom_bar(stat='identity', fill='red') +
+  coord_flip() +
+  labs(title='Missing Data Overview', x='Features', y='Number of Missing Values') +
+  theme_minimal()
+
+```
+
+The visualization of missing data reveals important insights about the dataset's completeness and quality. The most striking observation is the high number of missing values in two key fields:
+
+-MAINTENANCE_ITEM: This field is missing the most data, with more than 1.2 million entries without any information. This notable gap indicates that details about maintenance items are often not documented or are considered optional during data entry.
+-EQUIPMENT_ID: The second-highest number of missing values is in the EQUIPMENT_ID field, with approximately 1.1 million missing entries. This is concerning as it may hinder the ability to track and analyze maintenance activities for specific pieces of equipment.
+
+It seems that other fields have data that is either complete or almost complete. It's great to see that there are no missing values in important fields such as ACTUAL_WORK_IN_MINUTES, MAINTENANCE_ACTIVITY_TYPE, and the dates (EXECUTION_START_DATE, EXECUTION_FINISH_DATE). This really helps in thoroughly analyzing maintenance durations and timing. Still, there are significant gaps in the MAINTENANCE_ITEM and EQUIPMENT_ID fields will need to be taken into account during the analysis
+
+### Handling Missing Values for Numeric Data
+
+```{r}
+# 1. First handle MAINTENANCE_PLAN
+data$MAINTENANCE_PLAN[is.na(data$MAINTENANCE_PLAN)] <- "Unplanned"
+
+# 2. Handle descriptive fields
+data$ORDER_DESCRIPTION[is.na(data$ORDER_DESCRIPTION)] <- "Unknown"
+data$EQUIPMENT_DESC[is.na(data$EQUIPMENT_DESC)] <- "Unknown"
+data$EQUIP_CAT_DESC[is.na(data$EQUIP_CAT_DESC)] <- "Unknown"
+data$FUNCTIONAL_LOC[is.na(data$FUNCTIONAL_LOC)] <- "Unknown"
+data$MAINTENANCE_TYPE_DESCRIPTION[is.na(data$MAINTENANCE_TYPE_DESCRIPTION)] <- "Unknown"
+
+# 3. Handle functional area nodes
+data$FUNCTIONAL_AREA_NODE_1_MODIFIED[is.na(data$FUNCTIONAL_AREA_NODE_1_MODIFIED)] <- "Unknown"
+data$FUNCTIONAL_AREA_NODE_2_MODIFIED[is.na(data$FUNCTIONAL_AREA_NODE_2_MODIFIED)] <- "Unknown"  # Fixed
+data$FUNCTIONAL_AREA_NODE_3_MODIFIED[is.na(data$FUNCTIONAL_AREA_NODE_3_MODIFIED)] <- "Unknown"  # Fixed
+data$FUNCTIONAL_AREA_NODE_4_MODIFIED[is.na(data$FUNCTIONAL_AREA_NODE_4_MODIFIED)] <- "Unknown"  # Fixed
+data$FUNCTIONAL_AREA_NODE_5_MODIFIED[is.na(data$FUNCTIONAL_AREA_NODE_5_MODIFIED)] <- "Unknown"  # Fixed
+
+# 4. Handle equipment dates if needed
+data$EQUIP_START_UP_DATE[is.na(data$EQUIP_START_UP_DATE)] <- "Unknown"
+data$EQUIP_VALID_FROM[is.na(data$EQUIP_VALID_FROM)] <- "Unknown"
+data$EQUIP_VALID_TO[is.na(data$EQUIP_VALID_TO)] <- "Unknown"
+```
+
+For the missing values (NAs) in the MAINTENANCE_PLAN column, they’re being filled in with "Unplanned" based on the case description, it makes sense to assume that if we don’t know the maintenance plan, it was likely an unplanned maintenance activity. This helps keep the data more consistent and prevents any issues with missing values during the analysis. We did not handle missing values in equipment id and maintenance item column through imputation because item, and id can not be assigned random values based on the median or mode of the column.
+
+For other columns—like ORDER_DESCRIPTION, EQUIPMENT_DESC, and various FUNCTIONAL_AREA fields—any missing values are replaced with "Unknown". This is a simple way of handling missing data. Instead of leaving them blank or removing the rows, we just mark them as "Unknown". This makes sure we don’t lose any records and that the data stays usable for further analysis or modeling.
+
+### Final Check for Missing Values
+```{r}
+# Check for missing values after imputation
+missing_after_imputation <- sapply(data, function(x) sum(is.na(x)))
+print(missing_after_imputation)
+```
+
+
+### Visual Verification- After Imputation Visualization
+```{r}
+# Visualize missing data after handling
+# Create missing data summary
+missing_data_after <- data.frame(
+  Feature = names(data),
+  MissingCount = sapply(data, function(x) sum(is.na(x)))
+)
+
+# Create visualization
+ggplot(missing_data_after, aes(x = reorder(Feature, MissingCount), y = MissingCount)) +
+  geom_bar(stat = 'identity', fill = '#2ecc71') +  # Using a nice green color
+  coord_flip() +
+  labs(
+    title = 'Missing Data Overview After Imputation',
+    subtitle = paste('Total Records:', nrow(data)),
+    x = 'Features',
+    y = 'Number of Missing Values'
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 12),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 12)
+  ) +
+  scale_y_continuous(labels = scales::comma) +  
+  geom_text(
+    aes(label = scales::comma(MissingCount)),
+    hjust = -0.1,
+    size = 3,
+    data = subset(missing_data_after, MissingCount > 0)  
+  )
+
+```
+The graphs shows few columns that have not been imputed for the missing values because of the limitation of handing them through statistical imputation. Other columns like maintenance plan, order description are being handled.
+
+### Summary Statistics Check
+```{r}
+# Summary statistics after handling missing values
+summary(data)
+
+```
+
+## General Exploration of the Dataset
+### 1. What is the average time taken to complete different types of maintenance?
+
+```{r}
+# Average downtime by maintenance type
+avg_downtime <- data %>%
+  group_by(MAINTENANCE_TYPE_DESCRIPTION) %>%
+  summarise(avg_downtime = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE), .groups = "drop")  # Handle NAs
+
+# Plot with adjustments for better readability
+ggplot(avg_downtime, aes(x = MAINTENANCE_TYPE_DESCRIPTION, y = avg_downtime)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  labs(
+    title = "Average Downtime by Maintenance Type", 
+    x = "Maintenance Type", 
+    y = "Average Downtime (Minutes)"
+  ) +
+  theme_minimal(base_size = 15) +  # Base font size for better readability
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 20, face = "bold"),  # Center title, increase size
+    axis.title.x = element_text(size = 14, face = "bold"),  # Bold x-axis title
+    axis.title.y = element_text(size = 14, face = "bold"),  # Bold y-axis title
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),  # Rotate x-axis labels for better visibility
+    axis.text.y = element_text(size = 12)  # Increase y-axis text size for readability
+  )
+
+```
+This bar chart shows the Average Downtime by Maintenance Type, highlighting the variation in downtime across different maintenance categories. Capital Orders have the highest average downtime, exceeding 200 minutes, suggesting that capital-related repairs or upgrades take the most time. Breakdown Maintenance Orders also have a significant downtime, with an average of around 150 minutes, indicating that machine breakdowns cause substantial disruptions. Corrective Maintenance Orders follow with a downtime of approximately 100 minutes, while Unknown maintenance activities show a similar level. Interestingly, Preventive Maintenance Orders have much lower average downtimes, under 50 minutes, implying that preventive actions are quicker and more efficient. This suggests that prioritizing preventive maintenance may help reduce unplanned breakdowns and their associated higher downtimes. Overall, the chart emphasizes the operational burden of breakdowns and capital repairs, reinforcing the importance of investing in preventive measures to minimize downtime and improve machine efficiency.
+
+### 2. Machine Failure Prediction on Entire Machine Fleet
+
+```{r}
+# Failure frequency by equipment type
+equipment_failures <- data %>%
+  group_by(EQUIP_CAT_DESC) %>%
+  summarise(
+    failure_count = n(),
+    avg_downtime = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE)
+  ) %>%
+  arrange(desc(failure_count))
+
+ggplot(equipment_failures, aes(x = reorder(EQUIP_CAT_DESC, failure_count), y = failure_count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Failure Frequency by Equipment Type",
+    x = "Equipment Category",
+    y = "Number of Failures"
+  ) +
+  theme_minimal()
+```
+
+The majority of our failures are labeled as "Unknown" in our maintenance records, which honestly makes it impossible to identify which specific types of equipment are causing us the most trouble. While we can see some failures recorded under "Machines" category, it's such a small portion compared to the "Unknown" entries that we can't draw any meaningful conclusions about equipment-specific issues.The difference between the "Unknown" category and everything else really highlights that we have a serious data quality issue here, rather than an equipment-specific problem.
+
+
+```{r}
+# Monthly failure trends
+data$month_year <- floor_date(as.Date(data$EXECUTION_START_DATE), "month")
+
+monthly_failures <- data %>%
+  group_by(month_year) %>%
+  summarise(failure_count = n())
+
+ggplot(monthly_failures, aes(x = month_year, y = failure_count)) +
+  geom_line(color = "darkred") +
+  geom_point() +
+  labs(
+    title = "Monthly Failure Trends",
+    x = "Month",
+    y = "Number of Failures"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+The graph shows an interesting pattern over time. We can see a dramatic jump in the number of failures recorded in mid-2015, shooting up from nearly zero to around 15,000 failures per month. After this significant increase, the number of recorded failures has remained relatively stable, hovering around 15,000 per month with regular fluctuations up and down. This pattern suggests that rather than an actual increase in equipment failures, what we're probably seeing is the result of implementing a new maintenance tracking system in 2015. Before this point, failures were likely either not being recorded or were being tracked in a different way. From 2020 onwards, there's a slight but noticeable upward trend in the number of monthly failures, which could be worth investigating to understand if this represents a real increase in equipment issues or just better reporting practices.
+
+
+```{r}
+# Distribution of Failure Duration
+ggplot(data, aes(x = ACTUAL_WORK_IN_MINUTES)) +
+  geom_histogram(bins = 50, fill = "darkgreen", alpha = 0.7) +
+  scale_x_log10() +
+  labs(
+    title = "Distribution of Failure Duration",
+    x = "Downtime Duration (Minutes, log scale)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+```
+
+The visualization tell that most of our maintenance events are resolved pretty quickly - we can see this big peak in the middle of the graph. Since this is on a log scale, we're talking about most fixes taking between 10 to 100 minutes. But there's this long tail stretching to the right that we shouldn't ignore - these are our really time-consuming repairs that can seriously impact production. These might be rare, but when they happen.
+
+
+### 3.Machine Failure Prediction for High Maintenance Frequency
+#### High-Maintenance Equipment Analysis
+```{r}
+# Create analysis for top 10 machines
+high_maintenance_machines <- data %>%
+  filter(!is.na(EQUIPMENT_ID)) %>%  
+  group_by(EQUIPMENT_ID, EQUIPMENT_DESC) %>%
+  summarise(
+    maintenance_count = n(),
+    total_downtime = sum(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE),
+    avg_downtime = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE),
+    maintenance_types = n_distinct(MAINTENANCE_TYPE_DESCRIPTION)
+  ) %>%
+  arrange(desc(maintenance_count)) %>%
+  head(10)
+
+# Calculate percentages for context
+high_maintenance_machines <- high_maintenance_machines %>%
+  mutate(
+    pct_of_total = maintenance_count / sum(maintenance_count) * 100,
+    label = paste0(
+      "ID: ", EQUIPMENT_ID, "\n",
+      ifelse(EQUIPMENT_DESC == "Unknown", "", paste0(EQUIPMENT_DESC, "\n")),
+      "Count: ", format(maintenance_count, big.mark = ","), "\n",
+      "Avg Downtime: ", round(avg_downtime, 1), " mins"
+    )
+  )
+
+# Create enhanced visualization
+ggplot(high_maintenance_machines, 
+       aes(x = reorder(paste0(EQUIPMENT_ID, "\n", EQUIPMENT_DESC), maintenance_count), 
+           y = maintenance_count)) +
+  geom_bar(stat = "identity", 
+           aes(fill = avg_downtime),
+           width = 0.7) +
+  geom_text(aes(label = paste0(round(pct_of_total, 1), "%")),
+            hjust = -0.1,
+            size = 3.5,
+            fontface = "bold") +
+  geom_text(aes(label = format(maintenance_count, big.mark = ","),
+                y = maintenance_count/2),
+            color = "white",
+            size = 3.5) +
+  scale_fill_gradient(low = "#69b3a2", 
+                     high = "#FF4B4B",
+                     name = "Average\nDowntime\n(minutes)") +
+  labs(
+    title = "Top 10 High-Maintenance Equipment Analysis",
+    subtitle = "Including equipment with unknown descriptions | Sorted by maintenance frequency",
+    x = "Equipment ID and Description",
+    y = "Number of Maintenance Events"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 10, color = "gray50"),
+    axis.title.x = element_text(size = 10, face = "bold"),
+    axis.title.y = element_text(size = 10, face = "bold"),
+    axis.text.y = element_text(size = 9),
+    legend.position = "right",
+    legend.title = element_text(size = 9, face = "bold"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(1, 1, 1, 1), "cm")  # Fixed margin specification
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.2)),
+    labels = scales::comma
+  )
+
+# Create detailed summary table
+maintenance_summary <- high_maintenance_machines %>%
+  select(
+    EQUIPMENT_ID,
+    EQUIPMENT_DESC,
+    maintenance_count,
+    avg_downtime,
+    total_downtime,
+    maintenance_types,
+    pct_of_total
+  ) %>%
+  arrange(desc(maintenance_count)) %>%
+  mutate(
+    avg_downtime = round(avg_downtime, 1),
+    total_downtime = round(total_downtime, 1),
+    pct_of_total = round(pct_of_total, 2)
+  )
+
+# Print summary table
+print("Detailed Maintenance Summary for Top 10 Equipment:")
+print(maintenance_summary)
+```
+
+Looking at our maintenance equipment analysis, we can see some clear patterns across our top maintenance-heavy machines. The first visualization shows that equipment ID 300025792 has the highest number of maintenance events at 4,583, followed closely by 300017655 with 4,216 events. While many of these high-maintenance machines are labeled as "Unknown", we can identify some specific equipment like the L1 FILLER_ROTARY_CAN_72_VALVE which has 3,745 maintenance events. This suggests we might need better equipment labeling in our system.
+
+#### Maintenance Type Distribution Analysis for High-End Equipment
+```{r}
+# Maintenance Type Distribution Analysis
+maintenance_type_dist <- data %>%
+  filter(EQUIPMENT_ID %in% head(high_maintenance_machines$EQUIPMENT_ID, 5)) %>%
+  group_by(EQUIPMENT_ID, MAINTENANCE_TYPE_DESCRIPTION) %>%
+  summarise(
+    count = n(),
+    avg_duration = mean(ACTUAL_WORK_IN_MINUTES)/60  # Convert to hours
+  ) %>%
+  mutate(pct = count/sum(count) * 100) %>%
+  ungroup()
+
+# Maintenance Type Distribution
+ggplot(maintenance_type_dist, 
+       aes(x = factor(EQUIPMENT_ID), y = count, fill = MAINTENANCE_TYPE_DESCRIPTION)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = sprintf("%.1f%%", pct)), 
+            position = position_fill(vjust = 0.5),
+            size = 3,
+            check_overlap = TRUE) +
+  scale_fill_brewer(palette = "Set3", name = "Maintenance Type") +
+  labs(
+    title = "Maintenance Type Distribution for High-Frequency Equipment",
+    subtitle = "Proportional breakdown of maintenance types",
+    x = "Equipment ID",
+    y = "Proportion of Maintenance Events"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+This visualization breaks down the types of maintenance being performed on our top 5 most frequently maintained equipment. What's particularly interesting is that Corrective Maintenance Orders make up the majority of maintenance events across all equipment, ranging from about 60% to nearly 90%. For example, equipment ID 300017654 shows that almost 90% of its maintenance is corrective, with very little preventive maintenance. This might indicate a reactive rather than proactive maintenance approach.
+
+#### Downtime Analysis
+```{r}
+downtime_analysis <- data %>%
+  filter(EQUIPMENT_ID %in% head(high_maintenance_machines$EQUIPMENT_ID, 5)) %>%
+  group_by(EQUIPMENT_ID) %>%
+  summarise(
+    total_downtime = sum(ACTUAL_WORK_IN_MINUTES)/60,  # Convert to hours
+    avg_downtime = mean(ACTUAL_WORK_IN_MINUTES)/60,
+    max_downtime = max(ACTUAL_WORK_IN_MINUTES)/60,
+    maintenance_count = n(),
+    downtime_per_event = total_downtime/maintenance_count
+  ) %>%
+  arrange(desc(total_downtime))
+
+# Comparative Downtime Analysis
+ggplot(downtime_analysis) +
+  geom_segment(aes(x = reorder(factor(EQUIPMENT_ID), total_downtime),
+                   xend = reorder(factor(EQUIPMENT_ID), total_downtime),
+                   y = 0, 
+                   yend = total_downtime),
+              color = "gray", size = 1) +
+  geom_point(aes(x = reorder(factor(EQUIPMENT_ID), total_downtime),
+                 y = total_downtime,
+                 size = maintenance_count,
+                 color = avg_downtime)) +
+  scale_color_gradient(low = "green", high = "red", name = "Avg Downtime\n(Hours)") +
+  scale_size_continuous(name = "Number of\nMaintenance\nEvents") +
+  coord_flip() +
+  labs(
+    title = "Downtime Analysis for High-Maintenance Equipment",
+    subtitle = "Comparing total downtime, frequency, and average duration",
+    x = "Equipment ID",
+    y = "Total Downtime (Hours)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(face = "bold")
+  )
+```
+
+This visualization compares the total downtime hours with maintenance frequency and average duration. We can see that while some equipment has a high number of maintenance events, they don't necessarily have the highest total downtime. The equipment with ID 300025792 stands out with around 8,000 total downtime hours, which is significantly higher than the others. The varying dot sizes and colors help us understand that some equipment might have fewer but longer maintenance events, while others have more frequent but shorter maintenance periods.
+
+### 4. Machine Failure Prediction by Location
+#### Maintenance Distribution by Production Location
+```{r}
+# Create location analysis summary
+location_maintenance <- data %>%
+  group_by(PRODUCTION_LOCATION) %>%
+  summarise(
+    total_maintenance = n(),
+    total_downtime = sum(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE),
+    avg_downtime = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE),
+    unique_equipment = n_distinct(EQUIPMENT_ID),
+    maintenance_per_equipment = total_maintenance/unique_equipment
+  ) %>%
+  arrange(desc(total_maintenance)) %>%
+  mutate(
+    pct_of_total = total_maintenance/sum(total_maintenance) * 100,
+    downtime_hours = total_downtime/60
+  )
+
+# Create enhanced visualization
+ggplot(location_maintenance, 
+       aes(x = reorder(PRODUCTION_LOCATION, total_maintenance), 
+           y = total_maintenance)) +
+  # Main bars for maintenance count
+  geom_bar(stat = "identity", 
+           aes(fill = avg_downtime),
+           width = 0.7) +
+  # Add text for total maintenance events
+  geom_text(aes(label = format(total_maintenance, big.mark = ",")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4,
+            fontface = "bold") +
+  # Add text for percentage
+  geom_text(aes(label = sprintf("%.1f%%", pct_of_total),
+                y = total_maintenance),
+            vjust = -0.5,
+            size = 4,
+            fontface = "bold") +
+  # Add text for equipment count
+  geom_text(aes(label = sprintf("%d equipment", unique_equipment),
+                y = total_maintenance/2),
+            position = position_stack(vjust = 1.5),
+            color = "darkgrey",
+            size = 3.5) +
+  # Customize colors
+  scale_fill_gradient(
+    low = "#69b3a2",
+    high = "#FF4B4B",
+    name = "Average\nDowntime\n(minutes)"
+  ) +
+  # Labels and theme
+  labs(
+    title = "Maintenance Distribution by Production Location",
+    subtitle = "Showing total maintenance events, equipment count, and average downtime",
+    x = "Production Location",
+    y = "Number of Maintenance Events"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, color = "grey40"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    legend.position = "right",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(1, 1, 1, 1), "cm") 
+  ) +
+  # Adjust scale to accommodate labels
+  scale_y_continuous(
+    labels = scales::comma,
+    expand = expansion(mult = c(0, 0.2))
+  )
+
+# Print detailed statistics
+location_stats <- location_maintenance %>%
+  select(
+    PRODUCTION_LOCATION,
+    total_maintenance,
+    unique_equipment,
+    maintenance_per_equipment,
+    downtime_hours,
+    pct_of_total
+  ) %>%
+  arrange(desc(total_maintenance)) %>%
+  mutate(
+    maintenance_per_equipment = round(maintenance_per_equipment, 1),
+    downtime_hours = round(downtime_hours, 1),
+    pct_of_total = round(pct_of_total, 2)
+  )
+
+print(location_stats)
+```
+
+The maintenance distribution across production locations, there's a notable variation in maintenance activity. Silverstone leads with the highest number of maintenance events, accounting for 44.2% of all maintenance activities and managing 603 pieces of equipment. This is followed by Suzuka at 20.4% with 290,975 events and Monza at 15.8% with 225,279 events. The smaller facilities like Roma and Monaco handle fewer maintenance events, at 5.5% and 5.9% respectively, which aligns with their smaller equipment counts.
+
+#### Maintenance Type Distribution by Location
+```{r}
+# Maintenance type distribution by location
+location_maintenance_type <- data %>%
+  group_by(PRODUCTION_LOCATION, MAINTENANCE_TYPE_DESCRIPTION) %>%
+  summarise(count = n()) %>%
+  ungroup()
+
+ggplot(location_maintenance_type, 
+       aes(x = PRODUCTION_LOCATION, 
+           y = count, 
+           fill = MAINTENANCE_TYPE_DESCRIPTION)) +
+  geom_bar(stat = "identity", position = "fill") +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set3") +
+  labs(
+    title = "Maintenance Type Distribution by Location",
+    x = "Location",
+    y = "Proportion of Maintenance Types",
+    fill = "Maintenance Type"
+  ) +
+  theme_minimal()
+```
+
+ There's a concerning trend across all facilities regarding how maintenance activities are categorized. Most locations show a predominant "Unknown" classification, especially evident in Suzuka and Silverstone where it makes up over 75% of all maintenance activities. Cota and Roma show a more diverse distribution of maintenance types, with a notable presence of Capital Orders and Corrective Maintenance Orders. This suggests these facilities might have better maintenance classification practices. The minimal presence of Administrative Orders and Preventive Maintenance Orders across all locations might indicate either an underutilization of preventive maintenance strategies or inconsistent reporting practices.
+
+#### Average Downtime by Production Location
+```{r}
+# Create summary with cleaner statistics
+downtime_summary <- data %>%
+  group_by(PRODUCTION_LOCATION) %>%
+  summarise(
+    avg_downtime_hours = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE)/60,
+    total_events = n(),
+    median_downtime_hours = median(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE)/60
+  ) %>%
+  arrange(desc(avg_downtime_hours))
+
+# Create improved visualization
+ggplot(downtime_summary, 
+       aes(x = reorder(PRODUCTION_LOCATION, -avg_downtime_hours), 
+           y = avg_downtime_hours)) +
+  # Main bars
+  geom_bar(stat = "identity", 
+           fill = "#3498db",
+           width = 0.6) +
+  # Add labels on top of bars
+  geom_text(aes(label = sprintf("%.1f hrs\n%s events", 
+                               avg_downtime_hours,
+                               format(total_events, big.mark = ","))),
+            position = position_stack(vjust = -0.2),
+            size = 3.5) +
+  # Labels and theme
+  labs(
+    title = "Average Downtime by Production Location",
+    subtitle = "Average maintenance duration at each facility",
+    x = "Production Location",
+    y = "Average Downtime (Hours)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, color = "grey40"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 0),
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(1, 1, 1, 1), "cm")  # Proper margin specification
+  ) +
+  # Adjust y-axis for better proportion
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.2)),
+    limits = c(0, max(downtime_summary$avg_downtime_hours) * 1.2)
+  )
+
+# Print summary statistics
+print("Downtime Statistics by Location:")
+print(downtime_summary %>% 
+        mutate_if(is.numeric, round, 2) %>%
+        arrange(desc(avg_downtime_hours)))
+
+```
+
+The Average Downtime by Production Location visualization reveals significant variations in maintenance efficiency across facilities. Suzuka leads with the highest average downtime of approximately 1.7 hours per maintenance event, closely followed by Monza and Silverstone at about 1.6 hours each. In contrast, Roma shows the best performance with average downtimes of less than 1 hour per event. This difference could be attributed to various factors such as equipment complexity, maintenance team expertise, or the nature of issues being addressed at each location. The consistently lower downtime at Roma might offer best practices that could be valuable for other locations to study and potentially implement.
+
+
+### 5. Machine Failure Prediction by Equipment Age
+#### Equipment Age vs. Downtime Analysis
+```{r}
+# Calculate equipment age and create analysis
+equipment_analysis <- data %>%
+  mutate(
+    equipment_age = as.numeric(difftime(
+      as.Date(EXECUTION_START_DATE),
+      as.Date(EQUIP_START_UP_DATE),
+      units = "days"
+    ))/365,
+    age_category = case_when(
+      equipment_age <= 2 ~ "0-2 years",
+      equipment_age <= 4 ~ "2-4 years",
+      equipment_age <= 6 ~ "4-6 years",
+      equipment_age <= 8 ~ "6-8 years",
+      TRUE ~ "8+ years"
+    ),
+    age_category = factor(age_category, 
+                         levels = c("0-2 years", "2-4 years", 
+                                  "4-6 years", "6-8 years", "8+ years"))
+  ) %>%
+  filter(!is.na(equipment_age))
+
+# Create summary statistics
+age_summary <- equipment_analysis %>%
+  group_by(age_category) %>%
+  summarise(
+    avg_downtime = mean(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE)/60,
+    median_downtime = median(ACTUAL_WORK_IN_MINUTES, na.rm = TRUE)/60,
+    total_maintenance = n(),
+    unique_equipment = n_distinct(EQUIPMENT_ID),
+    maintenance_per_equipment = total_maintenance/unique_equipment
+  ) %>%
+  mutate(
+    label = sprintf("Events: %s\nEquipment: %d", 
+                   format(total_maintenance, big.mark = ","),
+                   unique_equipment)
+  )
+
+# Create simplified visualization
+ggplot(age_summary) +
+  # Main bars for average downtime
+  geom_bar(aes(x = age_category, y = avg_downtime, fill = maintenance_per_equipment),
+           stat = "identity", width = 0.7) +
+  # Add median line
+  geom_point(aes(x = age_category, y = median_downtime),
+             color = "red", size = 3, shape = 18) +
+  # Add labels
+  geom_text(aes(x = age_category, 
+                y = avg_downtime,
+                label = sprintf("%.1f hrs", avg_downtime)),
+            position = position_stack(vjust = -0.2),
+            size = 3.5) +
+  geom_text(aes(x = age_category,
+                y = avg_downtime/2,
+                label = label),
+            size = 3.5,
+            color = "darkgrey") +
+  # Customize colors
+  scale_fill_gradient(
+    low = "#69b3a2",
+    high = "#FF4B4B",
+    name = "Maintenance Events\nper Equipment"
+  ) +
+  # Labels and theme
+  labs(
+    title = "Equipment Age vs. Downtime Analysis",
+    subtitle = "Average downtime (bars) and median downtime (red diamonds) by age group",
+    x = "Equipment Age Category",
+    y = "Downtime Hours per Event"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, color = "grey40"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    axis.text.x = element_text(angle = 0),
+    legend.position = "right",
+    panel.grid.minor = element_blank()
+  )
+
+# Print detailed statistics
+print("Age Group Statistics:")
+print(age_summary %>% 
+        select(-label) %>%
+        arrange(age_category))
+```
+
+The Equipment Age vs. Downtime Analysis, there's a clear trend showing that maintenance demands increase with equipment age. The newest equipment (0-2 years) shows the lowest average downtime at 0.9 hours per event, while equipment over 8 years old requires significantly more maintenance time, averaging 2.4 hours per event. It's particularly noteworthy that there's a substantial jump in downtime duration when equipment reaches the 6-8 year mark, where average maintenance time doubles to 2.1 hours compared to younger equipment. This suggests a critical aging threshold where maintenance becomes more complex and time-consuming.
+
+#### Failure frequency vs age for old machines
+
+```{r}
+# Calculate equipment age
+data$equipment_age <- as.numeric(difftime(
+  as.Date(data$EXECUTION_START_DATE),
+  as.Date(data$EQUIP_START_UP_DATE),
+  units = "days"
+)) / 365
+
+# 5.1 Older Machines (> 5 years)
+old_machines <- data %>% filter(equipment_age > 5)
+
+# Failure frequency vs age for old machines
+ggplot(old_machines, 
+       aes(x = equipment_age, y = ACTUAL_WORK_IN_MINUTES)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  labs(
+    title = "Failure Duration vs Equipment Age (Older Machines)",
+    x = "Equipment Age (Years)",
+    y = "Downtime Duration (Minutes)"
+  ) +
+  theme_minimal()
+
+```
+
+The visualization, showing Failure Duration vs Equipment Age for older machines, reveals an interesting pattern through its scatter plot. While there's a slight upward trend in maintenance duration as equipment ages (shown by the blue trend line), what's interesting is the spread of the data points. We can see numerous outliers, particularly in the 20-40 year range, where some maintenance events took up to 8,000 minutes (about 5.5 days). However, the majority of maintenance events cluster at the bottom of the graph, suggesting that while older equipment can experience very long downtimes, most maintenance events remain relatively manageable.
+
+#### Maintenance type distribution for old machines
+
+```{r}
+# Maintenance type distribution for old machines
+old_maintenance_types <- old_machines %>%
+  group_by(MAINTENANCE_TYPE_DESCRIPTION) %>%
+  summarise(count = n())
+
+ggplot(old_maintenance_types, 
+       aes(x = reorder(MAINTENANCE_TYPE_DESCRIPTION, count), 
+           y = count)) +
+  geom_bar(stat = "identity", fill = "darkred") +
+  coord_flip() +
+  labs(
+    title = "Maintenance Types for Older Machines",
+    x = "Maintenance Type",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
+
+The Maintenance Types for Older Machines, shows that Preventive Maintenance Orders dominate for older equipment, followed by Corrective Maintenance Orders. This is actually a positive finding, indicating that older machines are being proactively maintained rather than just being fixed when they break down. The relatively small number of Administrative Orders suggests that most maintenance activities are actual hands-on repair or prevention work rather than paperwork exercises. This maintenance strategy for older equipment appears to be well-structured, focusing on prevention rather than cure.
+
+#### Failure Duration vs Equipment Age (Newer Machines)
+
+```{r}
+# 5.2 Newer Machines (≤ 5 years)
+new_machines <- data %>% filter(equipment_age <= 5)
+
+# Failure frequency vs age for new machines
+ggplot(new_machines, 
+       aes(x = equipment_age, y = ACTUAL_WORK_IN_MINUTES)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess") +
+  labs(
+    title = "Failure Duration vs Equipment Age (Newer Machines)",
+    x = "Equipment Age (Years)",
+    y = "Downtime Duration (Minutes)"
+  ) +
+  theme_minimal()
+
+```
+
+The Failure Duration vs Equipment Age visualization for newer machines (under 5 years), we can see a dense concentration of maintenance events clustered at the bottom of the graph, indicating that most maintenance activities are relatively quick. However, there are some notable outliers reaching up to 7,500 minutes (about 5 days) of downtime, even in relatively new equipment. Interestingly, these longer downtimes appear to be distributed fairly evenly across all age groups within the 0-5 year range, suggesting that severe maintenance issues can occur regardless of how new the equipment is.
+
+#### Maintenance type distribution for new machines
+
+```{r}
+# Maintenance type distribution for new machines
+new_maintenance_types <- new_machines %>%
+  group_by(MAINTENANCE_TYPE_DESCRIPTION) %>%
+  summarise(count = n())
+
+ggplot(new_maintenance_types, 
+       aes(x = reorder(MAINTENANCE_TYPE_DESCRIPTION, count), 
+           y = count)) +
+  geom_bar(stat = "identity", fill = "darkblue") +
+  coord_flip() +
+  labs(
+    title = "Maintenance Types for Newer Machines",
+    x = "Maintenance Type",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+```
+
+The Maintenance Types for Newer Machines chart reveals a significantly different maintenance strategy compared to older equipment. Preventive Maintenance Orders dominate by a large margin, which is exactly what we'd want to see for newer equipment - focusing on maintaining optimal performance rather than fixing breakdowns. The relatively lower count of Corrective Maintenance Orders (about half the number of preventive orders) suggests that this preventive strategy is working effectively. The minimal presence of Administrative Orders and complete absence of Breakdown Maintenance Orders is particularly encouraging, indicating that newer machines are being well-maintained before serious issues can develop. This proactive approach to maintaining newer equipment likely contributes to their overall reliability and shorter average downtime durations. 
+
+
+## Preparing the dataset by feature engineering and cleaning data for modeling.
+
+Preparing data for modeling.
+
+```{r}
+
+# Feature Engineering with standardization
+data$is_unplanned <- ifelse(data$MAINTENANCE_ACTIVITY_TYPE == "Unplanned", 1, 0)
+
+# Convert dates
+data$EXECUTION_START_DATE <- as.Date(data$EXECUTION_START_DATE)
+data$EQUIP_START_UP_DATE <- as.Date(data$EQUIP_START_UP_DATE)
+
+# Create and standardize numeric features
+data$work_minutes_scaled <- scale(data$ACTUAL_WORK_IN_MINUTES)
+data$equipment_age <- as.numeric(difftime(data$EXECUTION_START_DATE, 
+                                        data$EQUIP_START_UP_DATE, 
+                                        units = "days"))
+data$equipment_age_scaled <- scale(data$equipment_age)
+
+# Extract time features
+data$month <- as.factor(month(data$EXECUTION_START_DATE))
+data$day_of_week <- as.factor(wday(data$EXECUTION_START_DATE))
+```
+
+### Logistic Regression model
+```{r}
+# Prepare modeling dataset 
+model_data <- data %>%
+  filter(!is.na(work_minutes_scaled),
+         !is.na(equipment_age_scaled),
+         !is.na(PRODUCTION_LOCATION)) %>%
+  select(is_unplanned, 
+         work_minutes_scaled,
+         equipment_age_scaled,
+         month,
+         day_of_week,
+         PRODUCTION_LOCATION)
+
+```
+
+```{r}
+# Split the data
+# Split the data
+set.seed(123)
+sample_idx <- sample(1:nrow(model_data), 0.7 * nrow(model_data))
+train_data <- model_data[sample_idx, ]
+test_data <- model_data[-sample_idx, ]
+
+
+```
+
+```{r}
+# Fit the logistic regression model with increased iterations
+logistic_model <- glm(is_unplanned ~ ., 
+                     data = train_data,
+                     family = binomial(link = "logit"),
+                     control = list(maxit = 50))
+
+```
+ 
+```{r}
+# Make predictions
+predictions <- predict(logistic_model, newdata = test_data, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+
+# Calculate performance metrics
+confusion_matrix <- table(Predicted = predicted_classes, Actual = test_data$is_unplanned)
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+precision <- confusion_matrix[2,2] / sum(confusion_matrix[2,])
+recall <- confusion_matrix[2,2] / sum(confusion_matrix[,2])
+f1_score <- 2 * (precision * recall) / (precision + recall)
+
+# Create performance summary
+performance <- data.frame(
+  Metric = c("Accuracy", "Precision", "Recall", "F1 Score"),
+  Value = c(accuracy, precision, recall, f1_score)
+)
+
+# Get model summary
+model_summary <- summary(logistic_model)
+
+# Print results
+list(
+  Model_Summary = model_summary,
+  Performance_Metrics = performance,
+  Confusion_Matrix = confusion_matrix
+)
+```
+
+
+The logistic regression model predicting unplanned maintenance events shows strong overall performance with 82.3% accuracy. The most significant predictors include work duration (positive relationship), equipment age (slight positive relationship), and location (with Silverstone showing highest risk and Monza showing lowest risk of unplanned maintenance). The model correctly identifies about 74.5% of actual unplanned maintenance cases (precision) and captures 64.2% of all unplanned events (recall). Equipment categories also play a role, with production resources/tools showing significantly lower likelihood of unplanned maintenance compared to other categories. Day of the week has a significant impact, suggesting some weekly patterns in maintenance events. These insights could be valuable for maintenance planning, particularly in allocating resources across different locations and prioritizing preventive maintenance for older equipment or specific facility locations. The model's performance metrics suggest it's a reliable tool for maintenance planning, though there's room for improvement in catching unplanned maintenance events.
+
+### Random Forest model
+```{r}
+
+# Prepare data for random forest
+model_data <- data %>%
+  # Select only complete cases for our variables of interest
+  filter(!is.na(ACTUAL_WORK_IN_MINUTES),
+         !is.na(equipment_age),
+         !is.na(PRODUCTION_LOCATION),
+         !is.na(EQUIP_CAT_DESC)) %>%
+  # Convert categorical variables to factors
+  mutate(
+    PRODUCTION_LOCATION = as.factor(PRODUCTION_LOCATION),
+    EQUIP_CAT_DESC = as.factor(EQUIP_CAT_DESC),
+    month = as.factor(month),
+    day_of_week = as.factor(day_of_week),
+    is_unplanned = as.factor(ifelse(MAINTENANCE_ACTIVITY_TYPE == "Unplanned", 1, 0))
+  ) %>%
+  # Select only the columns we want to use
+  select(is_unplanned, 
+         ACTUAL_WORK_IN_MINUTES,
+         equipment_age,
+         month,
+         day_of_week,
+         EQUIP_CAT_DESC,
+         PRODUCTION_LOCATION)
+```
+
+```{r}
+# Split the data
+set.seed(123)
+sample_idx <- sample(1:nrow(model_data), 0.7 * nrow(model_data))
+train_data <- model_data[sample_idx, ]
+test_data <- model_data[-sample_idx, ]
+
+# Train random forest model
+rf_model <- randomForest(is_unplanned ~ ., 
+                        data = train_data,
+                        ntree = 500,
+                        mtry = sqrt(ncol(train_data)-1),
+                        importance = TRUE)
+```
+
+
+```{r}
+# Make predictions
+rf_predictions <- predict(rf_model, newdata = test_data)
+
+# Calculate confusion matrix
+rf_confusion <- table(Predicted = rf_predictions, 
+                     Actual = test_data$is_unplanned)
+```
+
+```{r}
+# Calculate performance metrics
+accuracy <- sum(diag(rf_confusion)) / sum(rf_confusion)
+precision <- rf_confusion[2,2] / sum(rf_confusion[2,])
+recall <- rf_confusion[2,2] / sum(rf_confusion[,2])
+f1_score <- 2 * (precision * recall) / (precision + recall)
+
+# Get variable importance
+var_imp <- importance(rf_model)
+```
+
+```{r}
+# Print results
+print("Random Forest Model Results:")
+print("\nConfusion Matrix:")
+print(rf_confusion)
+print("\nPerformance Metrics:")
+print(data.frame(
+  Metric = c("Accuracy", "Precision", "Recall", "F1 Score"),
+  Value = c(accuracy, precision, recall, f1_score)
+))
+print("\nVariable Importance:")
+print(var_imp)
+```
+
+
+```{r}
+# Plot variable importance
+varImpPlot(rf_model, main="Variable Importance Plot") 
+```
+
+The Random Forest model demonstrates strong predictive performance for unplanned maintenance events with 87% accuracy. The model excels at identifying both planned and unplanned maintenance cases, as shown by high precision (81.2%) and recall (74.8%). The variable importance analysis reveals that production location is the most crucial predictor, followed by actual work duration and equipment age. This suggests that maintenance patterns are heavily influenced by facility-specific factors. The model successfully identifies 5,465 unplanned maintenance events correctly while misclassifying only 1,262 planned maintenance cases, indicating reliable predictive power for maintenance planning.
+
+
+## Model Comparison
+
+When comparing the Random Forest with the Logistic Regression model, the Random Forest shows superior performance across all metrics. While the logistic regression achieved 82.3% accuracy with 74.5% precision and 64.2% recall, the Random Forest improved these metrics to 87% accuracy, 81.2% precision, and 74.8% recall. Both models identify production location as a crucial factor, but the Random Forest captures more complex relationships between variables, particularly in how location interacts with work duration and equipment age. The Random Forest's better recall rate means it's more effective at catching potential unplanned maintenance events before they occur.
+
+## Recommendation
+
+Based on both models' results, I recommend implementing a proactive maintenance strategy focused on these key actions:
+
+- Develop location-specific maintenance protocols, particularly for high-risk facilities like Silverstone
+- Implement predictive maintenance schedules based on equipment age and historical work duration patterns
+- Create a tiered response system based on the Random Forest model's probability predictions
+- Establish real-time monitoring for locations showing higher unplanned maintenance rates
+- Design preventive maintenance schedules accounting for day-of-week patterns identified by both models
+- Use the Random Forest model for primary prediction but maintain the logistic regression as a simpler backup tool for quick assessments
+- Regular model retraining with new data to maintain prediction accuracy and capture evolving patterns
+
+## Conclusion
+
+This analysis of Swire Coca-Cola's maintenance data has yielded several significant insights and a robust predictive solution for maintenance operations:
+1. Model Performance Summary
+
+Logistic Regression:
+
+Accuracy: 82.3%
+Precision: 74.5%
+Recall: 64.2%
+F1 Score: 69.0%
+
+
+Random Forest (Best Performing):
+
+Accuracy: 87.0%
+Precision: 81.2%
+Recall: 74.8%
+F1 Score: 77.9%
+
+
+2. Key Findings
+
+i. Location Impact:
+
+- Production location emerged as the strongest predictor of maintenance needs
+- Significant variations in maintenance patterns across different facilities
+- Silverstone facility shows highest risk of unplanned maintenance
+- Monza facility demonstrates best maintenance practices
+
+
+ii. Temporal Patterns:
+
+- Day of week significantly influences maintenance events
+- Monthly patterns provide additional predictive power
+- Equipment age correlates positively with maintenance requirements
+
+
+iii. Operational Insights:
+
+- Work duration serves as a reliable indicator of maintenance complexity
+- Equipment categories show varying maintenance patterns
+- Certain production lines require more frequent maintenance attention
+
+3. Future Enhancements
+
+- Real-time monitoring system integration
+- Automated alert system for predicted maintenance needs
+- Regular model retraining with new data
+- Cost-benefit analysis of preventive vs. reactive maintenance
+- Integration with inventory management systems
+
+The Random Forest model's superior performance makes it the recommended choice for implementation, providing reliable predictions for maintenance planning and resource allocation. This predictive maintenance solution positions Swire Coca-Cola to transition from reactive to proactive maintenance strategies, potentially saving significant operational costs and reducing unplanned downtime.
